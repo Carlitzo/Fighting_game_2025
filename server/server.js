@@ -1,13 +1,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import { serveFile } from "https://deno.land/std@0.224.0/http/file_server.ts";
 
-const originalLog = console.log;
-
-console.log = (...args) => {
-  const stack = new Error().stack?.split("\n")[2] || "Unknown location";
-  const location = stack.trim().replace(/^at\s+/, "");
-  originalLog(`[${location}]`, ...args);
-};
-
+// --- Lobbydata ---
 const lobbies = new Map();
 
 function generateLobbyId() {
@@ -16,56 +10,36 @@ function generateLobbyId() {
 
 function createLobby(socket, name) {
   const id = generateLobbyId();
-  const lobby = {
-    id,
-    players: new Map(),
-    gameStarted: false,
-  };
-  lobby.players.set(socket, {
-    name,
-    x: 0,
-    y: 0,
-    hp: 100,
-    character: null,
-  });
+  const lobby = { id, players: new Map(), gameStarted: false };
+  lobby.players.set(socket, { name, x: 0, y: 0, hp: 100, character: null });
   lobbies.set(id, lobby);
   socket.send(JSON.stringify({ type: "lobby_created", id }));
 }
 
-function joinLobby(id, socket, name) {
+function joinLobby(id, name, socket) {
   const lobby = lobbies.get(id);
   if (!lobby) {
     socket.send(JSON.stringify({ type: "error", message: "Lobby not found" }));
     return;
   }
-  lobby.players.set(socket, {
-    name,
-    x: 0,
-    y: 0,
-    hp: 100,
-    character: null,
-  });
+  lobby.players.set(socket, { name, x: 0, y: 0, hp: 100, character: null });
   broadcast(lobby, "player_joined", { name });
 }
 
 function broadcast(lobby, type, data) {
-  for (const [playerSocket] of lobby.players) {
-    playerSocket.send(JSON.stringify({ type, data }));
+  for (const [sock] of lobby.players) {
+    sock.send(JSON.stringify({ type, data }));
   }
 }
 
-function handleGameUpdate(lobbyId, socket, updateData) {
-  const lobby = lobbies.get(lobbyId);
-  if (!lobby) return;
+function handleUpdate(id, socket, updateData) {
+  const lobby = lobbies.get(id);
+  if (!lobby || !lobby.players.has(socket)) return;
 
-  const player = lobby.players.get(socket);
-  if (!player) return;
+  Object.assign(lobby.players.get(socket), updateData);
 
-  Object.assign(player, updateData); // t.ex. x, y, hp, etc.
-
-  // Skicka ny position till alla spelare
-  const playerStates = [...lobby.players.values()].map(p => ({ // .values returnerar en iterator istället för en riktig array
-    name: p.name,                                             // därför görs den om till en array med ...(spread-syntax) så att .map() kan användas.
+  const playerStates = [...lobby.players.values()].map(p => ({
+    name: p.name,
     x: p.x,
     y: p.y,
     hp: p.hp,
@@ -75,60 +49,77 @@ function handleGameUpdate(lobbyId, socket, updateData) {
   broadcast(lobby, "state_update", playerStates);
 }
 
-serve(async (req) => {
-  if (req.headers.get("upgrade") !== "websocket") {
-    return new Response("WebSocket only", { status: 400 });
+const requestHandler = async (req) => {
+  const url = new URL(req.url, "http://localhost:8888");
+
+  // Ignorera favicon.ico
+  if (url.pathname === "/favicon.ico") {
+    return new Response(null, { status: 204 });
   }
 
-  const { socket, response } = Deno.upgradeWebSocket(req);
-  let currentLobbyId = null;
+  // WebSocket-uppkoppling
+  if (req.headers.get("upgrade") === "websocket") {
+    const { socket, response } = Deno.upgradeWebSocket(req);
+    console.log("WebSocket upgraded");
 
-  socket.onopen = () => {
-    console.log("Client connected");
-  };
+    let currentLobbyId = null;
 
-  socket.onmessage = (event) => {
-    try {
-      const msg = JSON.parse(event.data);
-      switch (msg.type) {
-        case "create_lobby":
-          createLobby(socket, msg.name);
-          break;
-        case "join_lobby":
-          joinLobby(msg.id, socket, msg.name);
-          currentLobbyId = msg.id;
-          break;
-        case "update":
-          handleGameUpdate(currentLobbyId, socket, msg.data);
-          break;
-        default:
-          socket.send(JSON.stringify({ type: "error", message: "Unknown type" }));
-      }
-    } catch (e) {
-      console.error("JSON parse error:", e.message);
-    }
-  };
+    socket.onopen = () => console.log("WebSocket connected");
 
-  socket.onclose = () => {
-    console.log("Disconnected");
-    // Rensa från lobbyn
-    for (const [id, lobby] of lobbies) {
-      if (lobby.players.has(socket)) {
-        lobby.players.delete(socket);
-        broadcast(lobby, "player_left", { name: "unknown" });
-        if (lobby.players.size === 0) {
-          lobbies.delete(id);
+    socket.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+
+        switch (msg.type) {
+          case "create_lobby":
+            createLobby(socket, msg.name);
+            break;
+          case "join_lobby":
+            joinLobby(msg.id, msg.name, socket);
+            currentLobbyId = msg.id;
+            break;
+          case "update":
+            handleUpdate(currentLobbyId, socket, msg.data);
+            break;
+          default:
+            socket.send(JSON.stringify({ type: "error", message: "Unknown message type" }));
         }
-        break;
+      } catch (err) {
+        console.error("JSON-error:", err.message);
       }
-    }
-  };
+    };
 
-  socket.onerror = (e) => {
-    console.error("Socket error:", e.message);
-  };
+    socket.onclose = (event) => {
+      console.log(`WebSocket closed: code=${event.code}, reason=${event.reason}`);
+      for (const [id, lobby] of lobbies) {
+        if (lobby.players.has(socket)) {
+          lobby.players.delete(socket);
+          broadcast(lobby, "player_left", { name: "unknown" });
+          if (lobby.players.size === 0) {
+            lobbies.delete(id);
+            console.log(`Lobby ${id} removed (empty)`);
+          }
+          break;
+        }
+      }
+    };
 
-  return response;
-}, { port: 8888 });
+    socket.onerror = (error) => {
+      console.error("WebSocket error:", error.message);
+    };
 
-console.log("Server running on http://localhost:8888");
+    return response;
+  }
+
+  const filePath = `./public${url.pathname === "/" ? "/index.html" : url.pathname}`;
+
+  try {
+    return await serveFile(req, filePath);
+  } catch (err) {
+    console.error("404:", err.message);
+    return new Response("404 - File not found", { status: 404 });
+  }
+};
+
+serve(requestHandler, { port: 8888 });
+console.log("Server running on localhost:8888");

@@ -1,6 +1,5 @@
-import Phaser from "https://esm.sh/phaser";
-
 export function startGame() {
+    console.log("Hej")
     const config = {
         type: Phaser.AUTO,
         width: window.innerWidth,
@@ -13,18 +12,15 @@ export function startGame() {
     }
     
     function preload() {
-        this.load.image("background", "./../assets/background/background.png");
-        this.load.spritesheet("playerIdle", "./../assets/player/playerIdle.png", {
+        this.load.image("background", "./../assets/maps/BG_fighting_game_sunset_nice.png");
+        this.load.image("ground", "./../assets/maps/platform.png");
+        this.load.spritesheet("playerIdle", "./../assets/sprites/playerIdle.png", {
             frameWidth: 128,
             frameHeight: 128
         });
-        this.load.spritesheet("enemyIdle", "./../assets/Skeletons/enemyIdle.png", {
-            frameWidth: 150,
-            frameHeight: 150
-        });
-        this.load.spritesheet("enemyAttack", "./../assets/Skeletons/enemyAttack.png", {
-            frameWidth: 150,
-            frameHeight: 150
+        this.load.spritesheet("enemyIdle", "./../assets/sprites/enemyIdle.png", {
+            frameWidth: 128,
+            frameHeight: 128
         });
     }
     
@@ -40,23 +36,22 @@ export function startGame() {
         this.add.image(window.innerWidth / 2, window.innerHeight / 2, "background")
         .setDisplaySize(window.innerWidth, window.innerHeight);
 
-        player = this.physics.add.sprite(600,100, "playerIdle");
+        ground = this.physics.add.staticImage(
+            window.innerWidth / 2,
+            window.innerHeight, 
+            "ground"
+          ).setScale(3.7).refreshBody();
+          
+        player = this.physics.add.sprite(100,100, "playerIdle");
         player.setCollideWorldBounds(true);
         player.setScale(1.2);
         player.setSize(64, 128);
 
-        enemy = this.physics.add.sprite(100,100, "enemyIdle");
+        enemy = this.physics.add.sprite(600,100, "enemyIdle");
         enemy.setCollideWorldBounds(true);
-        enemy.setScale(1.5);
-        enemy.setSize(75, 75);
-        enemy.setOffset(40, 26);
-
-        ground = this.physics.add.staticGroup();
-        let groundHitbox = ground.create(400,580,null);
-        groundHitbox.setSize(800, 20).refreshBody();
-        groundHitbox.setVisible(false);
-        groundHitbox.setPosition(window.innerWidth / 2, window.innerHeight - -100).refreshBody();
-
+        enemy.setScale(1.2);
+        enemy.setSize(64, 128)
+        
         this.physics.add.collider(player, ground, () => {
             if (player.body.touching.down) {
                 playerJumpCount = 0;
@@ -78,17 +73,17 @@ export function startGame() {
 
         this.anims.create({
             key: "enemyIdle",
-            frames: this.anims.generateFrameNumbers("enemyIdle", { start: 0, end: 3 }),
+            frames: this.anims.generateFrameNumbers("enemyIdle", { start: 0, end: 8 }),
             frameRate: 8,  // Testa olika frameRate-värden (t.ex. 6, 8, 12)
             repeat: -1  // -1 gör att den loopar oändligt
         });
 
-        this.anims.create({
-            key: "enemyAttack",
-            frames: this.anims.generateFrameNumbers("enemyAttack", { start:0, end: 7}),
-            frameRate: 12,
-            repeat: 0
-        })
+        // this.anims.create({
+        //     key: "enemyAttack",
+        //     frames: this.anims.generateFrameNumbers("enemyAttack", { start:0, end: 7}),
+        //     frameRate: 12,
+        //     repeat: 0
+        // })
 
         player.play("playerIdle");
         enemy.play("enemyIdle");
@@ -188,5 +183,5 @@ export function startGame() {
     }
     
     
-    const game = new Phaser.Game(config);
+    var game = new Phaser.Game(config);
 }
