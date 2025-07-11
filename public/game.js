@@ -1,5 +1,4 @@
 export function startGame() {
-    console.log("Hej")
     const config = {
         type: Phaser.AUTO,
         width: window.innerWidth,
@@ -12,7 +11,7 @@ export function startGame() {
     }
     
     function preload() {
-        this.load.image("background", "./../assets/maps/BG_fighting_game_sunset_nice.png");
+        this.load.image("background", "./../assets/images/BG_main_menu.png");
         this.load.image("ground", "./../assets/maps/platform.png");
         this.load.spritesheet("playerIdle", "./../assets/sprites/playerIdle.png", {
             frameWidth: 128,

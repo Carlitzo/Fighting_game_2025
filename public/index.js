@@ -1,7 +1,8 @@
 import { connectWebsocket } from "./network.js";
 import { renderMenu } from "./menu.js";
-import { startGame } from "./game.js";
+import { setEvents } from "./events.js";
 
 connectWebsocket();
-renderMenu();
-startGame();
+// renderMenu();
+renderLoginRegister();
+setEvents();
