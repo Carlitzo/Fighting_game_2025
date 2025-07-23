@@ -17,7 +17,8 @@ export function connectWebsocket() {
             const data = JSON.parse(event.data);
 
             switch (data.type) {
-                case "" :
+                case "lobby_created" :
+                    
                     break;
             }
         }

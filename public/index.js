@@ -1,8 +1,6 @@
 import { connectWebsocket } from "./network.js";
 import { renderMenu } from "./menu.js";
-import { setEvents } from "./events.js";
+import { renderLoginRegister } from "./login_register.js";
 
 connectWebsocket();
-// renderMenu();
 renderLoginRegister();
-setEvents();

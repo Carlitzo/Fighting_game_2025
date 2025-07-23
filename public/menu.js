@@ -1,14 +1,10 @@
+import { setMainMenuEvents } from "./events.js";
+
 export function renderMenu() {
-    const body = document.body;
-    const wrapper = document.createElement("div");
-    const mainMenuWrapper = document.createElement("div");
+    const wrapper = document.getElementById("wrapper");
+    const mainMenuWrapper = document.getElementById("mainMenuWrapper");
 
-    body.appendChild(wrapper);
     wrapper.appendChild(mainMenuWrapper);
-    wrapper.style.backgroundImage = `url("./assets/images/BG_main_menu.png")`;
-
-    wrapper.id = "wrapper";
-    mainMenuWrapper.id = "mainMenuWrapper";
 
     const menuOptions = ["Start Game", "Join Game", "Highscores", "Music"];
     const menuIds = ["startGame", "joinGame", "highscores", "music"];
@@ -22,4 +18,6 @@ export function renderMenu() {
         mainMenuWrapper.appendChild(menuOptionContainer);
         menuOptionContainer.appendChild(menuOptionText);
     };
+
+    setMainMenuEvents();
 }
