@@ -46,7 +46,7 @@ p:hover {
     color: whitesmoke;
 }
 
-#usernameInputfield {
+#usernameInputfield, #lobbyNameInput, #lobbyPasswordInput {
     width: 18rem;
     height: 2.4rem;
     background: none;
@@ -81,7 +81,7 @@ input:focus::placeholder {
 opacity: 0;
 }
 
-#loginButton, #registerButton {
+#loginButton, #registerButton, #createLobbyButton {
     font-family: 'Press Start 2P', monospace;
     height: 2.4rem;
     padding: 10px;
@@ -91,7 +91,7 @@ opacity: 0;
     cursor: pointer;
 }
 
-#loginButton:hover, #registerButton:hover {
+#loginButton:hover, #registerButton:hover, #createLobbyButton:hover {
     color: white;
     filter: drop-shadow(0 0 0.75rem white);
 }

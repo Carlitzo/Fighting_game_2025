@@ -28,22 +28,22 @@ function generateLobbyId() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
-function createLobby(socket, name) {
+function createLobby(socket, username, lobbyName) {
   const id = generateLobbyId();
-  const lobby = { id, players: new Map(), gameStarted: false };
-  lobby.players.set(socket, { name, x: 0, y: 0, hp: 100, character: null });
+  const lobby = { id, lobbyName: lobbyName, players: new Map(), gameStarted: false };
+  lobby.players.set(socket, { username: username, admin: true, x: 0, y: 0, hp: 100, character: null });
   lobbies.set(id, lobby);
   socket.send(JSON.stringify({ type: "lobby_created", id: id }));
 }
 
-function joinLobby(id, name, socket) {
+function joinLobby(id, username, socket) {
   const lobby = lobbies.get(id);
   if (!lobby) {
     socket.send(JSON.stringify({ type: "error", message: "Lobby not found" }));
     return;
   }
-  lobby.players.set(socket, { name, x: 0, y: 0, hp: 100, character: null });
-  broadcast(lobby, "player_joined", { name });
+  lobby.players.set(socket, { username, admin: false, x: 0, y: 0, hp: 100, character: null });
+  broadcast(lobby, "player_joined", { username: username });
 }
 
 function broadcast(lobby, type, data) {
@@ -91,7 +91,7 @@ const requestHandler = async (req) => {
 
         switch (msg.type) {
           case "create_lobby":
-            createLobby(socket, msg.name);
+            createLobby(socket, msg.username, msg.lobbyName);
             break;
           case "join_lobby":
             joinLobby(msg.id, msg.name, socket);

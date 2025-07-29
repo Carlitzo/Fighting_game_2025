@@ -1,3 +1,4 @@
+
 let ws;
 
 export function connectWebsocket() {
