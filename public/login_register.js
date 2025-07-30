@@ -3,6 +3,8 @@ import { loginUser } from "./handlers/loginHandler.js";
 import { registerUser } from "./handlers/registerHandler.js";
 
 export function renderLoginRegister() {
+
+    
     const body = document.body;
     const wrapper = document.createElement("div");
     const mainMenuWrapper = document.createElement("div");
@@ -10,28 +12,35 @@ export function renderLoginRegister() {
     const registerDiv = document.createElement("div");
     const loginP = document.createElement("p");
     const registerP = document.createElement("p");
-
+    
     body.appendChild(wrapper);
     wrapper.appendChild(mainMenuWrapper);
     wrapper.style.backgroundImage = `url("./assets/images/BG_main_menu.png")`;
-
+    
     wrapper.id = "wrapper";
     mainMenuWrapper.id = "mainMenuWrapper";
-
+    
     mainMenuWrapper.appendChild(loginDiv);
     mainMenuWrapper.appendChild(registerDiv);
     loginDiv.appendChild(loginP);
     registerDiv.appendChild(registerP);
     loginP.textContent = "Login";
     registerP.textContent = "Register";
-
+    
     loginDiv.id = "loginDiv";
     registerDiv.id = "registerDiv";
 
+    if (localStorage.getItem("username")) {
+        loginDiv.remove();
+        registerDiv.remove();
+        renderMenu();
+        return;
+    }
+    
     loginDiv.addEventListener("click", () => {
         renderLogin(loginDiv, registerDiv);
     });
-
+    
     registerDiv.addEventListener("click", () => {
         renderRegister(loginDiv, registerDiv);
     })

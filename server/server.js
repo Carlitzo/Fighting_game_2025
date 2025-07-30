@@ -28,12 +28,12 @@ function generateLobbyId() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
-function createLobby(socket, username, lobbyName) {
+function createLobby(socket, username, lobbyName, lobbyPassword) {
   const id = generateLobbyId();
-  const lobby = { id, lobbyName: lobbyName, players: new Map(), gameStarted: false };
+  const lobby = { id, lobbyName: lobbyName, lobbyPassword: lobbyPassword, players: new Map(), gameStarted: false };
   lobby.players.set(socket, { username: username, admin: true, x: 0, y: 0, hp: 100, character: null });
   lobbies.set(id, lobby);
-  socket.send(JSON.stringify({ type: "lobby_created", id: id }));
+  socket.send(JSON.stringify({ type: "lobby_created", lobbyName: lobbyName, username: username, password: lobbyPassword, id: id }));
 }
 
 function joinLobby(id, username, socket) {
@@ -44,6 +44,23 @@ function joinLobby(id, username, socket) {
   }
   lobby.players.set(socket, { username, admin: false, x: 0, y: 0, hp: 100, character: null });
   broadcast(lobby, "player_joined", { username: username });
+}
+
+function getAllLobbies(socket) {
+  const arrayOfLobbies = [];
+  lobbies.forEach((lobby) => {
+    let adminUsername = null;
+
+    for (let [socket, player] of lobby.players) { //plocka ut socket och player som nyckel och värde-par i en Map
+      if (player.admin) {
+        adminUsername = player.username;
+      }
+    }
+
+    arrayOfLobbies.push({id: lobby.id, admin: adminUsername, lobbyName: lobby.lobbyName, gameStarted: lobby.gameStarted, amountOfPlayers: lobby.players.size});
+  })
+
+  socket.send(JSON.stringify({type: "receive_all_lobbies", lobbies: arrayOfLobbies}));
 }
 
 function broadcast(lobby, type, data) {
@@ -91,7 +108,10 @@ const requestHandler = async (req) => {
 
         switch (msg.type) {
           case "create_lobby":
-            createLobby(socket, msg.username, msg.lobbyName);
+            createLobby(socket, msg.username, msg.lobbyName, msg.lobbyPassword);
+            break;
+          case "get_all_lobbies":
+            getAllLobbies(socket);
             break;
           case "join_lobby":
             joinLobby(msg.id, msg.name, socket);

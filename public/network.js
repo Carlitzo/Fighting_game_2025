@@ -1,3 +1,4 @@
+import { renderLobbies, renderLobby } from "./renderLobby.js";
 
 let ws;
 
@@ -19,7 +20,11 @@ export function connectWebsocket() {
 
             switch (data.type) {
                 case "lobby_created" :
-                    
+                    renderLobby(data.username, data.password, data.id, data.lobbyName);
+                    console.log(data.username, data.password, data.id, data.lobbyName);
+                    break;
+                case "receive_all_lobbies" :
+                    renderLobbies(data.lobbies);
                     break;
             }
         }
