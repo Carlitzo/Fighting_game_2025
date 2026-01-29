@@ -36,7 +36,7 @@ body {
     color: whitesmoke;
 }
 
-p:hover {
+#startGame:hover, #joinGame:hover, #highscores:hover, #music:hover, #registerDiv:hover, #loginDiv:hover {
     color: white;
     filter: drop-shadow(0 0 0.75rem white);
 }
@@ -120,6 +120,78 @@ h6 {
     background-color: rgba(0, 0, 0, 0.7);
     border: 1px solid white;
     border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+#midDiv > p {
+    height: 3rem;
+}
+
+#modal {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    background:rgba(0, 0, 0, 0.7);
+    text-align: center;
+}
+
+#modalTop {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+#modalExit, #returnBtn {
+    height: 2.5rem;
+    width: 2.5rem;
+}
+
+#modalContent {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+#modalInstruction {
+    width: 18rem;
+    height: 2.4rem;
+    color: whitesmoke;
+}
+
+#modalPassword {
+    width: 18rem;
+    height: 2.4rem;
+    background: whitesmoke;
+}
+
+#sendRequestButton {
+    font-family: 'Press Start 2P', monospace;
+    height: 2.4rem;
+    padding: 10px;
+    background: whitesmoke;
+    border: 2px solid rgba(0, 0, 0, 0.9);
+    color: rgba(0, 0, 0, 0.9);
+    cursor: pointer;
+}
+
+.playerContainer {
+    display: flex;
+    flex-direction:column;
+    gap: 0.5rem;
+    color: whitesmoke;
+    font-size: medium;
+    margin-left: 1.5rem;
 }
 
 .lobbiesDisplay {
@@ -139,4 +211,9 @@ h6 {
     padding: 4px;
     font-size: x-small;
     box-sizing: border-box;
+    cursor: pointer;
+}
+
+.active {
+    border: 1px dashed white;
 }

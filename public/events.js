@@ -43,7 +43,6 @@ export function setMainMenuEvents() {
                 let ws = getWebSocket();
                 
                 ws.send(JSON.stringify({type: "create_lobby", username: username, lobbyName: lobbyName, lobbyPassword: lobbyPassword}));
-
             });
             
         });

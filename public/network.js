@@ -1,4 +1,5 @@
-import { renderLobbies, renderLobby } from "./renderLobby.js";
+import { renderLobbies, renderLobby, updateLobby, fillLobby, clearModal } from "./renderLobby.js";
+import { renderMenu } from "./menu.js";
 
 let ws;
 
@@ -19,13 +20,29 @@ export function connectWebsocket() {
             const data = JSON.parse(event.data);
 
             switch (data.type) {
-                case "lobby_created" :
-                    renderLobby(data.username, data.password, data.id, data.lobbyName);
+                case "lobby_created":
+                    renderLobby(data.username, data.password, data.lobbyName, true);
+                    updateLobby(data.username, "add_player");
                     console.log(data.username, data.password, data.id, data.lobbyName);
                     break;
-                case "receive_all_lobbies" :
+                case "receive_all_lobbies":
                     renderLobbies(data.lobbies);
                     break;
+                case "player_joined":
+                    renderLobby(data.username, data.lobbyName);
+                    fillLobby(data.players);
+                    clearModal();
+                    console.log(data)
+                    break;
+                case "player_left":
+                    clearMenu();
+                    renderMenu();
+                    break;
+                case "update_lobby_for_players":
+                    updateLobby(data.data, data.update_type);
+                    console.log(data)
+                    break;
+                
             }
         }
         catch (error) {

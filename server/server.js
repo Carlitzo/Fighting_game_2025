@@ -31,19 +31,80 @@ function generateLobbyId() {
 function createLobby(socket, username, lobbyName, lobbyPassword) {
   const id = generateLobbyId();
   const lobby = { id, lobbyName: lobbyName, lobbyPassword: lobbyPassword, players: new Map(), gameStarted: false };
+
   lobby.players.set(socket, { username: username, admin: true, x: 0, y: 0, hp: 100, character: null });
   lobbies.set(id, lobby);
   socket.send(JSON.stringify({ type: "lobby_created", lobbyName: lobbyName, username: username, password: lobbyPassword, id: id }));
 }
 
-function joinLobby(id, username, socket) {
+function joinLobby(id, username, socket, password) {
   const lobby = lobbies.get(id);
   if (!lobby) {
     socket.send(JSON.stringify({ type: "error", message: "Lobby not found" }));
     return;
   }
-  lobby.players.set(socket, { username, admin: false, x: 0, y: 0, hp: 100, character: null });
-  broadcast(lobby, "player_joined", { username: username });
+  let players = lobby.players
+  let player;
+  for (let p of players) {
+    if (p.admin) {
+      player = p;
+    }
+  }
+  if (player && username === player.username) return; 
+  if (password != lobby.lobbyPassword) {
+    socket.send(JSON.stringify({ type: "invalid password", message: "Invalid password" }));
+    return;
+  }
+  lobby.players.set(socket, { username: username, admin: false, x: 0, y: 0, hp: 100, character: null });
+  let playersArray = Array.from(players.values());
+  const playerNamesArray = playersArray.map(p => p.username);
+
+  socket.send(JSON.stringify({type: "player_joined", lobbyName: lobby.lobbyName, username: username, update_type: "add_player", players: playerNamesArray}));
+  updateLobby({id: id, socket: socket, type: "update_lobby_for_players", data: username, update_type: "add_player"});
+}
+
+function leaveLobby(socket) {
+  let matchingLobby = null;
+  let matchingPlayer = null;
+  
+  lobbies.forEach(lobby => {
+    if (lobby.players.has(socket)) {
+      matchingLobby = lobby;
+      matchingPlayer = lobby.players.get(socket);
+    }
+  });
+
+  if (!matchingLobby) return;
+
+  matchingLobby.players.delete(socket);
+
+  socket.send(JSON.stringify({type: "player_left"}));
+  updateLobby({id: matchingLobby.id, socket: socket, type: "update_lobby_for_players", data: matchingPlayer.username, update_type: "remove_player"});
+}
+
+function removePlayer(lobby, socket) {
+  const lobby_id = lobby.id
+  const players = lobby.players;
+  const playersArray = Array.from(players.values());
+  const userToRemove = playersArray.find(p => p.socket === socket)?.username;
+
+  socket.send(JSON.stringify({type: "player_left"}));
+  updateLobby({id: lobby_id, socket: socket, type: "update_lobby_for_players", data: userToRemove, update_type: "remove_player"});
+}
+
+function updateLobby({id, socket, type, data, update_type}) {
+  const lobby = lobbies.get(id);
+
+  if (!lobby) {
+    socket.send(JSON.stringify({ type: "error", message: "Lobby not found" }));
+    return;
+  }
+  
+  const players = lobby.players;
+  
+  for (const [sock] of players) {
+    if (sock !== socket) sock.send(JSON.stringify({ lobby: lobby, type: type, data: data, update_type: update_type }));
+  };
 }
 
 function getAllLobbies(socket) {
@@ -65,8 +126,8 @@ function getAllLobbies(socket) {
 
 function broadcast(lobby, type, data) {
   for (const [sock] of lobby.players) {
-    sock.send(JSON.stringify({ type, data }));
-  }
+    sock.send(JSON.stringify({ lobby, type, data }));
+  };
 }
 
 function handleUpdate(id, socket, updateData) {
@@ -114,11 +175,14 @@ const requestHandler = async (req) => {
             getAllLobbies(socket);
             break;
           case "join_lobby":
-            joinLobby(msg.id, msg.name, socket);
+            joinLobby(msg.id, msg.user, socket, msg.password);
             currentLobbyId = msg.id;
             break;
           case "update":
             handleUpdate(currentLobbyId, socket, msg.data);
+            break;
+          case "leave_lobby":
+            leaveLobby(socket);
             break;
           default:
             socket.send(JSON.stringify({ type: "error", message: "Unknown message type" }));
@@ -132,6 +196,7 @@ const requestHandler = async (req) => {
       console.log(`WebSocket closed: code=${event.code}, reason=${event.reason}`);
       for (const [id, lobby] of lobbies) {
         if (lobby.players.has(socket)) {
+          removePlayer(lobby, socket);
           lobby.players.delete(socket);
           broadcast(lobby, "player_left", { name: "unknown" });
           if (lobby.players.size === 0) {
